@@ -6,6 +6,10 @@ const mongoose = require("mongoose");
 const _ = require("lodash");
 const env = require("dotenv").config();
 
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
 const app = express();
 
 app.set('view engine', 'ejs');
@@ -13,7 +17,15 @@ app.set('view engine', 'ejs');
 app.use(express.urlencoded({extended: true}));
 app.use(express.static("public"));
 
-mongoose.connect("mongodb+srv://" + process.env.USERNAME + ":" + process.env.PASSWORD + "@cluster0.vxvvw4v.mongodb.net/todolistDB");
+mongoose.connect(
+  `mongodb+srv://${process.env.USERNAME}:${process.env.PASSWORD}@cluster0.vxvvw4v.mongodb.net/todolistDB?retryWrites=true&w=majority`,
+  {
+    useNewUrlParser: true,
+    useUnifiedTopology: true
+  }
+)
+.then(() => console.log('MongoDB connected successfully'))
+.catch((err) => console.error('MongoDB connection error:', err));
 
 mongoose.set('strictQuery', true);
 
@@ -46,18 +58,22 @@ const List = mongoose.model("List", listSchema);
 
 
 app.get("/", function(req, res) {
-
   Item.find({}, function(err, foundItems){
+    if (err) {
+      console.error(err);
+      return res.status(500).send("Error retrieving items");
+    }
 
     if (foundItems.length === 0){
       Item.insertMany(defaultItems, function(err){
         if (err) {
           console.log(err);
+          return res.status(500).send("Error inserting default items");
         } else {
           console.log("Successfully added list items");
+          res.redirect("/");
         }
       });
-      res.redirect("/");
     } else {
       res.render("list", {listTitle: "Today", newListItems: foundItems});
     }
