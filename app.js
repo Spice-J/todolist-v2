@@ -15,6 +15,8 @@ app.use(express.static("public"));
 
 mongoose.connect("mongodb+srv://" + process.env.USERNAME + ":" + process.env.PASSWORD + "@cluster0.vxvvw4v.mongodb.net/todolistDB");
 
+mongoose.set('strictQuery', true);
+
 const itemsSchema = {
   name: String
 };
